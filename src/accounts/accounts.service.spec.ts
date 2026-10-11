@@ -37,4 +37,23 @@ describe('Accounts services', () => {
         expect(accountClient).toEqual({ balance: 500 });
     })
 
+    it('Withdraw from non-existing account', () => {
+        expect(() => service.postEvent({ type: "withdraw", origin: 10, amount: 600 })).toThrow(
+            new NotFoundException('Account not found')
+        );
+    })
+
+    it('Withdraw from account with balance', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 500 });
+        const sentEvent = service.postEvent({ type: "withdraw", origin: 1, amount: 200 });
+        expect(sentEvent).toEqual({ origin: { id: 1, balance: 300 }});
+    })
+
+    it('Withdraw from account without balance', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+        expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 600 })).toThrow(
+            new NotFoundException('Balance insufficient, check the amount and try again')
+        );
+    })
+
 })
