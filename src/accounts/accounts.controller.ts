@@ -1,12 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 
 @Controller()
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
-  @Get()
-  getHello(): string {
-    return this.accountsService.getBalance();
+  @Get('/balance/:account_id')
+  getBalance(@Param('account_id') account_id: number) {
+    return this.accountsService.getBalance(account_id);
   }
 }
