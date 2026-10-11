@@ -1,20 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { AccountsRepository } from './accounts.repository';
  import { NotFoundException } from '@nestjs/common';
-import { IEvent } from './accounts.interface';
+import { IBalance, IEvent } from './accounts.interface';
 @Injectable()
 export class AccountsService {
     constructor(private readonly repository: AccountsRepository) {}
 
-    getBalance(account_id: number): number | NotFoundException {
-
+    getBalance(account_id: number): IBalance | NotFoundException {        
         const accountBalance = this.repository.findById(account_id);
 
         if (!accountBalance) {
-            throw new NotFoundException('Account not found')
+            throw new NotFoundException('Account not found');
         }
 
-        return accountBalance.balance;
+        return { balance: accountBalance.balance};
+    }
+    
     postEvent({ type, amount, destination, origin }: IEvent) {
         const account = this.repository.findById(destination);
 

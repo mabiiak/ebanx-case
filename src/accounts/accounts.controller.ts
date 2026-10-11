@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
-import { ApiBody, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiOperation, ApiParam } from '@nestjs/swagger';
 import { EventDto } from './accounts.eventDTO';
 
 @Controller()
@@ -8,7 +8,8 @@ export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
 
   @Get('/balance/:account_id')
-  getBalance(@Param('account_id') account_id: number) {
+  @ApiParam({ name: 'account_id', type: Number, example: 1 })
+  getBalance(@Param('account_id', ParseIntPipe) account_id: number) {
     return this.accountsService.getBalance(account_id);
   }
 
