@@ -5,6 +5,7 @@ import { AccountsRepository } from "./accounts.repository";
 
 describe('Accounts services', () => {
     let service: AccountsService;
+    let repository: AccountsRepository;
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -12,6 +13,7 @@ describe('Accounts services', () => {
         }).compile();
 
         service = module.get<AccountsService>(AccountsService);
+        repository = module.get<AccountsRepository>(AccountsRepository);
     })
 
     it('Create account with initial balance', () => {
@@ -56,4 +58,53 @@ describe('Accounts services', () => {
         );
     })
 
+    it('Transfer from non-existing account origin', () => {
+        service.postEvent({ type: "deposit", destination: 15, amount: 200 });
+        expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).toThrow(
+            new NotFoundException('Account not found')
+        );
+    })
+
+    it('Transfer from non-existing account destination', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+        expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).toThrow(
+            new NotFoundException('Account not found')
+        );
+    })
+    
+    it('Transfer from existing account', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 500 });
+        service.postEvent({ type: "deposit", destination: 15, amount: 1 });
+        const sentEvent = service.postEvent({ type: "transfer", origin: 1, amount: 200, destination: 15 });
+        expect(sentEvent).toEqual({ origin: { id: 1, balance: 300 }, destination: { id: 15, balance: 201 }});
+    })
+
+    it('Transfer from account without balance', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 25 });
+        service.postEvent({ type: "deposit", destination: 15, amount: 1 });
+        expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 })).toThrow(
+            new BadRequestException('Balance insufficient, check the amount and try again')
+        );
+    })
+
+    it('Failed transfer, revert the changes', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+        service.postEvent({ type: "deposit", destination: 15, amount: 0 });
+
+        jest.spyOn(repository, "save")
+            .mockResolvedValueOnce(true as never)    
+            .mockImplementationOnce(() => new Error('Error of networking'));
+        
+        expect(() => {
+            service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 });
+        }).toThrow('Error of networking');
+
+
+        const accountClientOrigin = service.getBalance(1);
+        const accountClientDestiantion = service.getBalance(15);
+
+        expect(accountClientOrigin).toEqual({ balance: 250 });
+        expect(accountClientDestiantion).toEqual({ balance: 0 });
+
+    })
 })
