@@ -20,6 +20,7 @@ describe('Accounts services', () => {
     })
 
     it('Deposit into existing account', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 250 });
         const sentEvent = service.postEvent({ type: "deposit", destination: 1, amount: 250 });
         expect(sentEvent).toEqual({ destination: {id: 1, balance: 500 }});
     })
