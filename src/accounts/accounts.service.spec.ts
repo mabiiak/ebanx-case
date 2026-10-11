@@ -32,8 +32,9 @@ describe('Accounts services', () => {
     })
 
     it('Get balance for existing account', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 500 });
         const accountClient = service.getBalance(1);
-        expect(accountClient).toEqual({account_id: 1, balance: 500});
+        expect(accountClient).toEqual({ balance: 500 });
     })
 
 })
