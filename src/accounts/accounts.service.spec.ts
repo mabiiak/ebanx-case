@@ -1,6 +1,6 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { AccountsService } from "./accounts.service";
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { AccountsRepository } from "./accounts.repository";
 
 describe('Accounts services', () => {
@@ -52,7 +52,7 @@ describe('Accounts services', () => {
     it('Withdraw from account without balance', () => {
         service.postEvent({ type: "deposit", destination: 1, amount: 200 });
         expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 600 })).toThrow(
-            new NotFoundException('Balance insufficient, check the amount and try again')
+            new BadRequestException('Balance insufficient, check the amount and try again')
         );
     })
 
