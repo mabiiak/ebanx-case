@@ -3,7 +3,7 @@ import { AccountsService } from "./accounts.service";
 import { NotFoundException } from "@nestjs/common";
 import { AccountsRepository } from "./accounts.repository";
 
-describe('AccountsService', () => {
+describe('Accounts services', () => {
     let service: AccountsService;
 
     beforeEach(async () => {
@@ -14,14 +14,22 @@ describe('AccountsService', () => {
         service = module.get<AccountsService>(AccountsService);
     })
 
-    // Test 1: Get balance for non-existing account
+    it('Create account with initial balance', () => {
+        const sentEvent = service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+        expect(sentEvent).toEqual({ destination: {id: 1, balance: 250 }});
+    })
+
+    it('Deposit into existing account', () => {
+        const sentEvent = service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+        expect(sentEvent).toEqual({ destination: {id: 1, balance: 500 }});
+    })
+
     it('Get balance for non-existing account', () => {
         expect(() => service.getBalance(1211)).toThrow(
             new NotFoundException('Account not found')
         );
     })
 
-    // Test 4: Get balance for existing account
     it('Get balance for existing account', () => {
         const accountClient = service.getBalance(1);
         expect(accountClient).toEqual({account_id: 1, balance: 500});
