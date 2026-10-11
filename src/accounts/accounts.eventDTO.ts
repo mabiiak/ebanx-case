@@ -7,8 +7,8 @@ export class EventDto {
   @ApiProperty({ example: 100 })
   amount: number;
   
-  @ApiProperty({ example: 30 })
-  destination: number;
+  @ApiPropertyOptional({ example: 30 })
+  destination?: number;
 
   
   @ApiPropertyOptional({ example: 30 })

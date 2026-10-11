@@ -10,6 +10,6 @@ export interface IBalance {
 export interface IEvent {
     type: string,
     amount: number,
-    destination: number,
+    destination?: number,
     origin?: number,
 }
