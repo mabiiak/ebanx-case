@@ -19,12 +19,12 @@ describe('Accounts controller (e2e)', () => {
         await app.init();
     });
 
-    it('should find balance of a non-existing account' , async () => {
+    it('should return 404 when the account does not exist' , async () => {
         const response = await request(app.getHttpServer()).get('/balance/1').expect(404);
         expect(response.body.message).toBe('Account not found');
     });
 
-    it('should create accounts and return the respectives balances', async () => {
+    it('should create accounts and return their respective balances', async () => {
         await request(app.getHttpServer()).post('/event')
             .send({ type: "deposit", amount: 50, destination: 1 })
             .expect(201);
@@ -44,7 +44,7 @@ describe('Accounts controller (e2e)', () => {
         expect(accountTwo.body.balance).toBe(800);
     });
 
-    it('should create an account and failed deposit' , async () => {
+    it('should reject invalid deposits without changing the balance' , async () => {
         await request(app.getHttpServer()).post('/event')
             .send({ type: "deposit", amount: 200, destination: 1 })
             .expect(201);
@@ -63,7 +63,7 @@ describe('Accounts controller (e2e)', () => {
         expect(secondBalance.body.balance).toEqual(firstBalance.body.balance);
     })
 
-    it('should create an account and withdraw', async () => {
+    it('should withdraw successfully and update the balance', async () => {
         await request(app.getHttpServer()).post('/event')
             .send({ type: "deposit", amount: 50, destination: 1 })
             .expect(201);
@@ -111,7 +111,7 @@ describe('Accounts controller (e2e)', () => {
         expect(fourthWithDraw.body.message).toBe('Account not found');
     })
 
-    it('should transfer the amount changing the balance' , async () => {
+    it('should transfer funds and update both balances' , async () => {
         await request(app.getHttpServer()).post('/event')
             .send({ type: "deposit", amount: 500, destination: 1 })
             .expect(201);
