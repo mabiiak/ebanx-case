@@ -35,6 +35,10 @@ export class AccountsService {
         const requiresOrigin = ['transfer', 'withdraw'].includes(type);
         const requiresDestination = ['deposit', 'transfer'].includes(type);
 
+        if (!amount || amount <= 0) {
+            throw new BadRequestException('Field amount is invalid');
+        }            
+
         if (requiresOrigin && origin === undefined) {
             throw new BadRequestException('Origin is required');
         }
@@ -70,10 +74,6 @@ export class AccountsService {
     async withdraw(amount: number, origin: number) {
         const account = await this.checkExistAccount(origin);
 
-        if (amount <= 0) {
-            throw new BadRequestException(`Field amount is invalid`)
-        } 
-
         if (amount > account.balance) {
             throw new BadRequestException('Balance insufficient, check the amount and try again');
         }
@@ -91,9 +91,6 @@ export class AccountsService {
         const lastBalanceOrigin = accountClientOrigin.balance;
         const lastBalanceDestination = accountClientDestiantion.balance;
 
-        if (amount <= 0) {
-            throw new BadRequestException(`Field amount is invalid`)
-        } 
         
         if (origin === destination) {
             throw new BadRequestException('The transfer must be for different accounts, check the account and try again');
@@ -127,7 +124,7 @@ export class AccountsService {
     
     async postEvent({ type, amount, destination, origin }: IEvent) {
         await this.checkBodyEvent({type, amount, destination, origin});
-
+        
         if (destination && type === 'deposit') {
             return this.deposit(amount, destination);
         } else if (origin && type === 'withdraw') {
