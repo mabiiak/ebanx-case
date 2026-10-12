@@ -3,16 +3,19 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AccountsModule } from './../src/accounts/accounts.module';
+import { AccountsRepository } from '../src/accounts/accounts.repository';
 
 describe('Accounts controller (e2e)', () => {
     let app: INestApplication<App>;
+    let repository: AccountsRepository;
 
     beforeEach(async () => {
         const moduleFixture: TestingModule = await Test.createTestingModule({
-        imports: [AccountsModule],
+            imports: [AccountsModule],
         }).compile();
 
-        app = moduleFixture.createNestApplication();
+    repository = moduleFixture.get<AccountsRepository>(AccountsRepository);
+    app = moduleFixture.createNestApplication();
         await app.init();
     });
 
@@ -201,7 +204,40 @@ describe('Accounts controller (e2e)', () => {
         expect(seventhTransfer.body.message).toBe('Destination is required');
         expect(eigththTransfer.body.message).toBe('Field amount is invalid');
     })
+
+    it('should roll back a transfer when a save operation fails' , async () => {
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 150, destination: 1 })
+            .expect(201);
+
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 150, destination: 2 })
+            .expect(201);
+
+        const originalSave = repository.save.bind(repository);
+
+        const saveSpy = jest.spyOn(repository, "save" as any)
+            .mockImplementationOnce((entity : any) => originalSave(entity))
+            .mockRejectedValueOnce(new Error('Operation was canceled'));
+
+        const firstBalanceAccountOne = await request(app.getHttpServer()).get('/balance/1').expect(200);
+        const firstBalanceAccountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+            
+        const transfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 150, origin: 1, destination: 2 })
+            .expect(500);
+
+        const secondBalanceAccountOne = await request(app.getHttpServer()).get('/balance/1').expect(200);
+        const secondBalanceAccountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+        
+        expect(transfer.body.message).toBe('Internal server error');
+        expect(secondBalanceAccountOne.body.balance).toEqual(firstBalanceAccountOne.body.balance);
+        expect(secondBalanceAccountTwo.body.balance).toEqual(firstBalanceAccountTwo.body.balance);
+        expect(saveSpy).toHaveBeenCalledTimes(1);
+    })
+
     afterEach(async () => {
         await app.close();
+        jest.restoreAllMocks();
     });
 });
