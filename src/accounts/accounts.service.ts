@@ -1,14 +1,17 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AccountsRepository } from './accounts.repository';
- import { NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { IBalance, IEvent } from './accounts.interface';
-import { ExceptionHandler } from '@nestjs/core/errors/exception-handler.js';
 
 @Injectable()
 export class AccountsService {
     constructor(private readonly repository: AccountsRepository) {}
 
-    getBalance(account_id: number): IBalance | NotFoundException {        
+    getBalance(account_id: number): IBalance { 
+        if (!account_id || typeof account_id === 'string') {
+            throw new BadRequestException('Account id is invalid');
+        }     
+    
         const accountBalance = this.repository.findById(account_id);
 
         if (!accountBalance) {
