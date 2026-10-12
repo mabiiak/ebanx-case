@@ -37,27 +37,52 @@ describe('Accounts controller (e2e)', () => {
 
         await request(app.getHttpServer()).get('/balance/1').expect(200);
 
+    it('should create an account and withdraw', async () => {
         await request(app.getHttpServer()).post('/event')
-            .send({ type: "deposit", amount: 600, destination: 1 })
-            .expect(201);
-        
-        const response = await request(app.getHttpServer()).get('/balance/1').expect(200);
-        expect(response.body.balance).toBe(800);
-    })
-
-    it('should create an account and failed deposit' , async () => {
-        await request(app.getHttpServer()).post('/event')
-            .send({ type: "deposit", amount: 200, destination: 1 })
+            .send({ type: "deposit", amount: 50, destination: 1 })
             .expect(201);
 
         const firstBalance = await request(app.getHttpServer()).get('/balance/1').expect(200);
-        const depositInvalid = await request(app.getHttpServer()).post('/event')
-            .send({ type: "deposit", amount: -100, destination: 1 })
+        const response = await request(app.getHttpServer()).post('/event')
+            .send({ type: "withdraw", amount: 50, origin: 1 })
+            .expect(201);
+        
+        const secondBalance = await request(app.getHttpServer()).get('/balance/1').expect(200);
+        expect(firstBalance.body.balance).toBe(50);
+        expect(secondBalance.body.balance).toBe(0);
+        expect(response.body.origin.balance).toBe(0);
+    })
+
+    it('should reject invalid withdrawals without changing the balance', async () => {
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 5, destination: 1 })
+            .expect(201);
+
+        const firstBalance = await request(app.getHttpServer()).get('/balance/1').expect(200);
+
+        const firstWithDraw = await request(app.getHttpServer()).post('/event')
+            .send({ type: "withdraw", amount: 500, origin: 1 })
             .expect(400);
 
+        const secondWithDraw = await request(app.getHttpServer()).post('/event')
+            .send({ type: "withdraw", amount: 5 })
+            .expect(400);
+
+        const thirdWithDraw = await request(app.getHttpServer()).post('/event')
+            .send({ type: "withdraw", origin: 1 })
+            .expect(400);
+
+        const fourthWithDraw = await request(app.getHttpServer()).post('/event')
+            .send({ type: "withdraw", origin: 10, amount: 1 })
+            .expect(404);
+        
         const secondBalance = await request(app.getHttpServer()).get('/balance/1').expect(200);
-        expect(depositInvalid.body.message).toBe("Field amount is invalid");
-        expect(secondBalance.body.balance).toEqual(firstBalance.body.balance);
+
+        expect(secondBalance.body.balance).toBe(firstBalance.body.balance);
+        expect(firstWithDraw.body.message).toBe('Balance insufficient, check the amount and try again');
+        expect(secondWithDraw.body.message).toBe('Origin is required');
+        expect(thirdWithDraw.body.message).toBe('Field amount is invalid');
+        expect(fourthWithDraw.body.message).toBe('Account not found');
     })
     
     afterEach(async () => {
