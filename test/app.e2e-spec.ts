@@ -233,7 +233,10 @@ describe('Accounts controller (e2e)', () => {
         expect(transfer.body.message).toBe('Internal server error');
         expect(secondBalanceAccountOne.body.balance).toEqual(firstBalanceAccountOne.body.balance);
         expect(secondBalanceAccountTwo.body.balance).toEqual(firstBalanceAccountTwo.body.balance);
-        expect(saveSpy).toHaveBeenCalledTimes(1);
+        expect(saveSpy).toHaveBeenCalledTimes(4);
+        expect(saveSpy).toHaveBeenNthCalledWith(1, { account_id: 1, balance: 0 });
+        expect(saveSpy).toHaveBeenNthCalledWith(3, { account_id: 2, balance: 150 });
+        expect(saveSpy).toHaveBeenNthCalledWith(4, { account_id: 1, balance: 150 });
     })
 
     afterEach(async () => {
