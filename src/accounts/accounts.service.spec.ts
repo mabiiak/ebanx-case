@@ -17,189 +17,188 @@ describe('Accounts services', () => {
     })
 
     describe('Deposit', () => {
-        it('Send a request with invalid type', () => {
-            expect(() => service.postEvent({ type: "pix", destination: 1, amount: 250 })).toThrow(
+        it('Send a request with invalid type', async () => {
+            await expect(() => service.postEvent({ type: "pix", destination: 1, amount: 250 })).rejects.toThrow(
                 new BadRequestException('Type operation is invalid')
             );
         })
     
-        it('Create account with invalid values: destination', () => {
-            expect(() => service.postEvent({ type: "deposit", destination: Number("-999"), amount: 250 })).toThrow(
+        it('Create account with invalid values: destination', async () => {
+            await expect(() => service.postEvent({ type: "deposit", destination: Number("-999"), amount: 250 })).rejects.toThrow(
                 new BadRequestException('Field destination is invalid')
             );
         })
     
-        it('Create account with invalid values: amount', () => {
-            expect(() => service.postEvent({ type: "deposit", destination: 1, amount: Number("eleven") })).toThrow(
+        it('Create account with invalid values: amount', async () => {
+            await expect(() => service.postEvent({ type: "deposit", destination: 1, amount: Number("eleven") })).rejects.toThrow(
                 new BadRequestException('Field amount is invalid')
             );
         })
     
-        it('Create account with initial balance', () => {
-            const sentEvent = service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+        it('Create account with initial balance', async () => {
+            const sentEvent = await service.postEvent({ type: "deposit", destination: 1, amount: 250 });
             expect(sentEvent).toEqual({ destination: {id: 1, balance: 250 }});
         })
     
-        it('Deposit into existing account', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 250 });
-            const sentEvent = service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+        it('Deposit into existing account', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+            const sentEvent = await service.postEvent({ type: "deposit", destination: 1, amount: 250 });
             expect(sentEvent).toEqual({ destination: {id: 1, balance: 500 }});
         })
     
-        it('Deposit with empty destination', () => {
+        it('Deposit with empty destination', async () => {
             service.postEvent({ type: "deposit", destination: 1, amount: 250 });
-            expect(() => service.postEvent({ type: "deposit", amount: 250 })).toThrow(
+            await expect(() => service.postEvent({ type: "deposit", amount: 250 })).rejects.toThrow(
                 new BadRequestException('Destination is required')
             );
         })
 
-        it('Deposit with negative amount', () => {
+        it('Deposit with negative amount', async () => {
             service.postEvent({ type: "deposit", destination: 1, amount: 500 });
-            expect(() => service.postEvent({ type: "deposit", destination: 1, amount: -250 })).toThrow(
+            await expect(() => service.postEvent({ type: "deposit", destination: 1, amount: -250 })).rejects.toThrow(
                 new BadRequestException('Field amount is invalid')
             );
         })
     })
 
     describe('Get balance', () => {
-        it('Get balance for non-existing account', () => {
-            expect(() => service.getBalance(1211)).toThrow(
+        it('Get balance for non-existing account', async () => {
+            await expect(() => service.getBalance(1211)).rejects.toThrow(
                 new NotFoundException('Account not found')
             );
         })
     
-        it('Get balance with invalid id account', () => {
-            expect(() => service.getBalance("name account")).toThrow(
+        it('Get balance with invalid id account', async () => {
+            await expect(() => service.getBalance("name account")).rejects.toThrow(
                 new BadRequestException('Account id is invalid')
             );
         })
     
-        it('Get balance for existing account', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 500 });
-            const accountClient = service.getBalance(1);
+        it('Get balance for existing account', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 500 });
+            const accountClient = await service.getBalance(1);
             expect(accountClient).toEqual({ balance: 500 });
         })
 
-        it("Get balance don't change the value balance", () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 500 });
-            const accountClientFirstTime = service.getBalance(1);
-            const accountSecondTime = service.getBalance(1);
+        it("Get balance don't change the value balance", async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 500 });
+            const accountClientFirstTime = await service.getBalance(1);
+            const accountSecondTime = await service.getBalance(1);
             expect(accountClientFirstTime.balance).toBe(accountSecondTime.balance);
         })
     })
 
     describe('Withdraw', () => {
-        it('Withdraw from non-existing account', () => {
-            expect(() => service.postEvent({ type: "withdraw", origin: 10, amount: 600 })).toThrow(
+        it('Withdraw from non-existing account', async () => {
+            await expect(() => service.postEvent({ type: "withdraw", origin: 10, amount: 600 })).rejects.toThrow(
                 new NotFoundException('Account not found')
             );
         })
     
-        it('Withdraw with empty origin', () => {
-            expect(() => service.postEvent({ type: "withdraw", amount: 600 })).toThrow(
+        it('Withdraw with empty origin', async () => {
+            await expect(() => service.postEvent({ type: "withdraw", amount: 600 })).rejects.toThrow(
                 new BadRequestException('Origin is required')
             );
         })
 
-        it('Withdraw without amount', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 100 });
-            expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 0 })).toThrow(
+        it('Withdraw without amount', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 100 });
+            await expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 0 })).rejects.toThrow(
                 new BadRequestException('Field amount is invalid')
             );
         })
 
-        it('Withdraw with negative amount', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 100 });
-            expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: -1000 })).toThrow(
+        it('Withdraw with negative amount', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 100 });
+            await expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: -1000 })).rejects.toThrow(
                 new BadRequestException('Field amount is invalid')
             );
         })
 
-        it('Withdraw from account with balance', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 500 });
-            const sentEvent = service.postEvent({ type: "withdraw", origin: 1, amount: 200 });
+        it('Withdraw from account with balance', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 500 });
+            const sentEvent = await service.postEvent({ type: "withdraw", origin: 1, amount: 200 });
             expect(sentEvent).toEqual({ origin: { id: 1, balance: 300 }});
         })
     
-        it('Withdraw from account without balance', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 600 })).toThrow(
+        it('Withdraw from account without balance', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+            await expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 600 })).rejects.toThrow(
                 new BadRequestException('Balance insufficient, check the amount and try again')
             );
         })
     })
 
     describe('Transfer', () => {
-        it('Transfer with empty origin', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            service.postEvent({ type: "deposit", destination: 2, amount: 0 });
-            expect(() => service.postEvent({ type: "transfer", amount: 25, destination: 1 })).toThrow(
+        it('Transfer with empty origin', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+            await service.postEvent({ type: "deposit", destination: 2, amount: 0 });
+            await expect(() => service.postEvent({ type: "transfer", amount: 25, destination: 1 })).rejects.toThrow(
                 new BadRequestException('Origin is required')
             );
         })
         
-        it('Transfer from non-existing account origin', () => {
-            service.postEvent({ type: "deposit", destination: 15, amount: 200 });
-            expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).toThrow(
+        it('Transfer from non-existing account origin', async () => {
+            await service.postEvent({ type: "deposit", destination: 15, amount: 200 });
+            await expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).rejects.toThrow(
                 new NotFoundException('Account not found')
             );
         })
         
-        it('Transfer with empty destination', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            service.postEvent({ type: "deposit", destination: 2, amount: 0 });
-            expect(() => service.postEvent({ type: "transfer", amount: 200, origin: 1 })).toThrow(
+        it('Transfer with empty destination', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+            await service.postEvent({ type: "deposit", destination: 2, amount: 0 });
+            await expect(() => service.postEvent({ type: "transfer", amount: 200, origin: 1 })).rejects.toThrow(
                 new BadRequestException('Destination is required')
             );
         })
 
-        it('Transfer from non-existing account destination', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).toThrow(
+        it('Transfer from non-existing account destination', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+            await expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).rejects.toThrow(
                 new NotFoundException('Account not found')
             );
         })
     
-        it('Transfer between the same account', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 1 })).toThrow(
+        it('Transfer between the same account', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+             await expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 1 })).rejects.toThrow(
                 new BadRequestException('The transfer must be for different accounts, check the account and try again')
             );
         })
         
-        it('Transfer from existing account', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 500 });
-            service.postEvent({ type: "deposit", destination: 15, amount: 1 });
-            const sentEvent = service.postEvent({ type: "transfer", origin: 1, amount: 200, destination: 15 });
+        it('Transfer from existing account', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 500 });
+            await service.postEvent({ type: "deposit", destination: 15, amount: 1 });
+            const sentEvent = await service.postEvent({ type: "transfer", origin: 1, amount: 200, destination: 15 });
             expect(sentEvent).toEqual({ origin: { id: 1, balance: 300 }, destination: { id: 15, balance: 201 }});
         })
     
-        it('Transfer from account without balance', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 25 });
-            service.postEvent({ type: "deposit", destination: 15, amount: 1 });
-            expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 })).toThrow(
+        it('Transfer from account without balance', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 25 });
+            await service.postEvent({ type: "deposit", destination: 15, amount: 1 });
+            await expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 })).rejects.toThrow(
                 new BadRequestException('Balance insufficient, check the amount and try again')
             );
         })
     
-        it('Failed transfer, revert the changes', () => {
-            service.postEvent({ type: "deposit", destination: 1, amount: 250 });
-            service.postEvent({ type: "deposit", destination: 15, amount: 0 });
+        it('Failed transfer, revert the changes', async () => {
+            await service.postEvent({ type: "deposit", destination: 1, amount: 250 });
+            await service.postEvent({ type: "deposit", destination: 15, amount: 0 });
     
             jest.spyOn(repository, "save")
-                .mockResolvedValueOnce(true as never)
-                .mockImplementationOnce(() => new Error('Operation was canceled'));
+                .mockResolvedValueOnce(undefined)
+                .mockRejectedValueOnce(new Error('Operation was canceled'));
             
-            expect(() => {
-                service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 });
-            }).toThrow('Operation was canceled');
+            await expect(
+                service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 })
+            ).rejects.toThrow('Operation was canceled');
     
-    
-            const accountClientOrigin = service.getBalance(1);
-            const accountClientDestiantion = service.getBalance(15);
-    
+            const accountClientOrigin = await service.getBalance(1);
+            const accountClientDestination = await service.getBalance(15);
+
             expect(accountClientOrigin).toEqual({ balance: 250 });
-            expect(accountClientDestiantion).toEqual({ balance: 0 });
-        })
+            expect(accountClientDestination).toEqual({ balance: 0 });
+        });
     })
 })

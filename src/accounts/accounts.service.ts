@@ -7,12 +7,12 @@ import { IBalance, IEvent } from './accounts.interface';
 export class AccountsService {
     constructor(private readonly repository: AccountsRepository) {}
 
-    getBalance(account_id: number): IBalance { 
-        if (!account_id || typeof account_id === 'string') {
+    async getBalance(account_id: number): Promise<IBalance> { 
+        if (!Number.isInteger(account_id) || account_id <= 0) {
             throw new BadRequestException('Account id is invalid');
         }     
     
-        const accountBalance = this.repository.findById(account_id);
+        const accountBalance = await this.repository.findById(account_id);
 
         if (!accountBalance) {
             throw new NotFoundException('Account not found');
@@ -21,8 +21,8 @@ export class AccountsService {
         return { balance: accountBalance.balance};
     }
 
-    checkExistAccount(account_id: number) {
-        const account = this.repository.findById(account_id);
+    async checkExistAccount(account_id: number) {
+        const account = await this.repository.findById(account_id);
 
         if (!account) {
             throw new NotFoundException('Account not found');
@@ -54,21 +54,21 @@ export class AccountsService {
         }
     }
 
-    deposit(amount: number, destination: number) {
-        const account = this.repository.findById(destination);
+    async deposit(amount: number, destination: number) {
+        const account = await this.repository.findById(destination);
 
         if (!account) {
-            this.repository.save({ account_id: destination, balance: amount });
+            await this.repository.save({ account_id: destination, balance: amount });
         } else {
-            this.repository.save({ account_id: destination, balance: account.balance + amount });
+            await this.repository.save({ account_id: destination, balance: account.balance + amount });
         }
             
-        const updatedAccount = this.checkExistAccount(destination);
+        const updatedAccount = await this.checkExistAccount(destination);
         return { destination: {id: updatedAccount.account_id, balance: updatedAccount.balance} }
     }
 
-    withdraw(amount: number, origin: number) {
-        const account = this.checkExistAccount(origin);
+    async withdraw(amount: number, origin: number) {
+        const account = await this.checkExistAccount(origin);
 
         if (amount <= 0) {
             throw new BadRequestException(`Field amount is invalid`)
@@ -78,15 +78,15 @@ export class AccountsService {
             throw new BadRequestException('Balance insufficient, check the amount and try again');
         }
 
-        this.repository.save({ account_id: origin, balance: account.balance - amount });
-        const updatedAccount = this.checkExistAccount(origin);
+        await this.repository.save({ account_id: origin, balance: account.balance - amount });
+        const updatedAccount = await this.checkExistAccount(origin);
         
         return { origin: { id: updatedAccount.account_id, balance: updatedAccount.balance } }
     }
 
-    transfer(amount: number, destination: number, origin: number) {
-        const accountClientOrigin = this.checkExistAccount(origin);
-        const accountClientDestiantion = this.checkExistAccount(destination);
+    async transfer(amount: number, destination: number, origin: number) {
+        const accountClientOrigin = await this.checkExistAccount(origin);
+        const accountClientDestiantion = await this.checkExistAccount(destination);
 
         const lastBalanceOrigin = accountClientOrigin.balance;
         const lastBalanceDestination = accountClientDestiantion.balance;
@@ -103,19 +103,19 @@ export class AccountsService {
             throw new BadRequestException('Balance insufficient, check the amount and try again');
         }
         
-        this.repository.save({ account_id: origin, balance: accountClientOrigin.balance - amount });
-        this.repository.save({ account_id: destination, balance: accountClientDestiantion.balance + amount });
+        await this.repository.save({ account_id: origin, balance: accountClientOrigin.balance - amount });
+        await this.repository.save({ account_id: destination, balance: accountClientDestiantion.balance + amount });
 
-        const updatedAccountOrigin = this.checkExistAccount(origin);
-        const updatedAccountDestination = this.checkExistAccount(destination);
+        const updatedAccountOrigin = await this.checkExistAccount(origin);
+        const updatedAccountDestination = await this.checkExistAccount(destination);
         
         if ((lastBalanceOrigin - amount) !== updatedAccountOrigin.balance) {
-            this.repository.save({ account_id: origin, balance: lastBalanceOrigin });
+            await this.repository.save({ account_id: origin, balance: lastBalanceOrigin });
             throw new BadRequestException('Operation was canceled');
         }
         
         if ((lastBalanceDestination + amount) !== updatedAccountDestination.balance) {
-            this.repository.save({ account_id: destination, balance:lastBalanceDestination });
+            await this.repository.save({ account_id: destination, balance:lastBalanceDestination });
             throw new BadRequestException('Operation was canceled');
         }
                 
@@ -125,8 +125,8 @@ export class AccountsService {
         };
     }
     
-    postEvent({ type, amount, destination, origin }: IEvent) {
-        this.checkBodyEvent({type, amount, destination, origin});
+    async postEvent({ type, amount, destination, origin }: IEvent) {
+        await this.checkBodyEvent({type, amount, destination, origin});
 
         if (destination && type === 'deposit') {
             return this.deposit(amount, destination);
