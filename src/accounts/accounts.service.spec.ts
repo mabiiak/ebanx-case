@@ -57,6 +57,7 @@ describe('Accounts services', () => {
             new BadRequestException('Balance insufficient, check the amount and try again')
         );
     })
+    
 
     it('Transfer from non-existing account origin', () => {
         service.postEvent({ type: "deposit", destination: 15, amount: 200 });
@@ -69,6 +70,13 @@ describe('Accounts services', () => {
         service.postEvent({ type: "deposit", destination: 1, amount: 200 });
         expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 15 })).toThrow(
             new NotFoundException('Account not found')
+        );
+    })
+
+    it('Transfer between the same account', () => {
+        service.postEvent({ type: "deposit", destination: 1, amount: 200 });
+        expect(() => service.postEvent({ type: "transfer", origin: 1, amount: 25, destination: 1 })).toThrow(
+            new BadRequestException('The transfer must be for different accounts, check the account and try again')
         );
     })
     
@@ -92,12 +100,12 @@ describe('Accounts services', () => {
         service.postEvent({ type: "deposit", destination: 15, amount: 0 });
 
         jest.spyOn(repository, "save")
-            .mockResolvedValueOnce(true as never)    
-            .mockImplementationOnce(() => new Error('Error of networking'));
+            .mockResolvedValueOnce(true as never)
+            .mockImplementationOnce(() => new Error('Operation was canceled'));
         
         expect(() => {
             service.postEvent({ type: "transfer", origin: 1, amount: 50, destination: 15 });
-        }).toThrow('Error of networking');
+        }).toThrow('Operation was canceled');
 
 
         const accountClientOrigin = service.getBalance(1);
