@@ -107,7 +107,100 @@ describe('Accounts controller (e2e)', () => {
         expect(thirdWithDraw.body.message).toBe('Field amount is invalid');
         expect(fourthWithDraw.body.message).toBe('Account not found');
     })
-    
+
+    it('should transfer the amount changing the balance' , async () => {
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 500, destination: 1 })
+            .expect(201);
+
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 150, destination: 2 })
+            .expect(201);
+        
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 150, origin: 1, destination: 2 })
+            .expect(201);
+
+        let accountOne = await request(app.getHttpServer()).get('/balance/1').expect(200);        
+        let accountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+
+        expect(accountOne.body.balance).toBe(350);
+        expect(accountTwo.body.balance).toBe(300);
+
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 400, destination: 2 })
+            .expect(201);
+
+        accountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+
+        expect(accountTwo.body.balance).toBe(700);
+
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 150, origin: 2, destination: 1 })
+            .expect(201);
+
+        accountOne = await request(app.getHttpServer()).get('/balance/1').expect(200);        
+        accountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+
+        expect(accountOne.body.balance).toBe(500);
+        expect(accountTwo.body.balance).toBe(550);
+    })
+
+    it('should reject invalid transfers without changing the balance' , async () => {
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 100, destination: 1 })
+            .expect(201);
+
+        await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 150, destination: 2 })
+            .expect(201);
+
+        const fisrtTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 5000, origin: 1, destination: 2 })
+            .expect(400);
+
+        const secondTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: -150, origin: 1, destination: 2 })
+            .expect(400);
+
+        const thirthTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", origin: 1, destination: 2 })
+            .expect(400);
+
+        const fourthTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", origin: 15, amount: 150, destination: 2 })
+            .expect(404);
+
+        const fivethTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 150, origin: 1, destination: 5 })
+            .expect(404);
+
+        const sixthTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 150, destination: 2 })
+            .expect(400);
+
+        const seventhTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 150, origin: 1 })
+            .expect(400);
+
+        const eigththTransfer = await request(app.getHttpServer()).post('/event')
+            .send({ type: "transfer", amount: 0, origin: 1, destination: 2 })
+            .expect(400);
+
+        const accountOne = await request(app.getHttpServer()).get('/balance/1').expect(200);        
+        const accountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+
+        expect(accountOne.body.balance).toBe(100);
+        expect(accountTwo.body.balance).toBe(150);
+        expect(fisrtTransfer.body.message).toBe('Balance insufficient, check the amount and try again');
+        expect(secondTransfer.body.message).toBe('Field amount is invalid');
+        expect(thirthTransfer.body.message).toBe('Field amount is invalid');
+        expect(fourthTransfer.body.message).toBe('Account not found');
+        expect(fivethTransfer.body.message).toBe('Account not found');
+        expect(sixthTransfer.body.message).toBe('Origin is required');
+        expect(seventhTransfer.body.message).toBe('Destination is required');
+        expect(eigththTransfer.body.message).toBe('Field amount is invalid');
+    })
     afterEach(async () => {
         await app.close();
     });
