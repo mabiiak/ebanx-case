@@ -84,13 +84,19 @@ export class AccountsService {
         return { origin: { id: updatedAccount.account_id, balance: updatedAccount.balance } }
     }
 
+    async restoreBalances(snapshots: { account_id: number, balance: number }[]) {
+        for (const snapshot of snapshots) {
+            try {
+                await this.repository.save(snapshot);
+            } catch (error) {
+                throw new Error(`Rollback failed for account, ${snapshot.account_id}`)
+            }
+        }
+    }
+
     async transfer(amount: number, destination: number, origin: number) {
         const accountClientOrigin = await this.checkExistAccount(origin);
-        const accountClientDestiantion = await this.checkExistAccount(destination);
-
-        const lastBalanceOrigin = accountClientOrigin.balance;
-        const lastBalanceDestination = accountClientDestiantion.balance;
-
+        const accountClientDestination = await this.checkExistAccount(destination);
         
         if (origin === destination) {
             throw new BadRequestException('The transfer must be for different accounts, check the account and try again');
@@ -99,23 +105,21 @@ export class AccountsService {
         if (amount > accountClientOrigin.balance) {            
             throw new BadRequestException('Balance insufficient, check the amount and try again');
         }
-        
-        await this.repository.save({ account_id: origin, balance: accountClientOrigin.balance - amount });
-        await this.repository.save({ account_id: destination, balance: accountClientDestiantion.balance + amount });
 
+        const originSnapshot = { account_id: origin, balance: accountClientOrigin.balance };
+        const destinationSnapshot = { account_id: destination, balance: accountClientDestination.balance };
+
+        try {
+            await this.repository.save({ account_id: origin, balance: accountClientOrigin.balance - amount });
+            await this.repository.save({ account_id: destination, balance: accountClientDestination.balance + amount });
+        } catch (error) {
+            await this.restoreBalances([destinationSnapshot, originSnapshot]);
+            throw error;
+        }
+        
         const updatedAccountOrigin = await this.checkExistAccount(origin);
         const updatedAccountDestination = await this.checkExistAccount(destination);
-        
-        if ((lastBalanceOrigin - amount) !== updatedAccountOrigin.balance) {
-            await this.repository.save({ account_id: origin, balance: lastBalanceOrigin });
-            throw new BadRequestException('Operation was canceled');
-        }
-        
-        if ((lastBalanceDestination + amount) !== updatedAccountDestination.balance) {
-            await this.repository.save({ account_id: destination, balance:lastBalanceDestination });
-            throw new BadRequestException('Operation was canceled');
-        }
-                
+
         return {
             'origin': {  id: updatedAccountOrigin.account_id, balance: updatedAccountOrigin.balance },
             'destination': {  id: updatedAccountDestination.account_id, balance: updatedAccountDestination.balance }
