@@ -103,7 +103,7 @@ describe('Accounts services', () => {
 
         it('Withdraw without amount', async () => {
             await service.postEvent({ type: "deposit", destination: 1, amount: 100 });
-            await expect(() => service.postEvent({ type: "withdraw", origin: 1, amount: 0 })).rejects.toThrow(
+            await expect(() => service.postEvent({ type: "withdraw", origin: 1 })).rejects.toThrow(
                 new BadRequestException('Field amount is invalid')
             );
         })
@@ -132,7 +132,7 @@ describe('Accounts services', () => {
     describe('Transfer', () => {
         it('Transfer with empty origin', async () => {
             await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            await service.postEvent({ type: "deposit", destination: 2, amount: 0 });
+            await service.postEvent({ type: "deposit", destination: 2, amount: 1 });
             await expect(() => service.postEvent({ type: "transfer", amount: 25, destination: 1 })).rejects.toThrow(
                 new BadRequestException('Origin is required')
             );
@@ -147,7 +147,7 @@ describe('Accounts services', () => {
         
         it('Transfer with empty destination', async () => {
             await service.postEvent({ type: "deposit", destination: 1, amount: 200 });
-            await service.postEvent({ type: "deposit", destination: 2, amount: 0 });
+            await service.postEvent({ type: "deposit", destination: 2, amount: 1 });
             await expect(() => service.postEvent({ type: "transfer", amount: 200, origin: 1 })).rejects.toThrow(
                 new BadRequestException('Destination is required')
             );
@@ -184,7 +184,7 @@ describe('Accounts services', () => {
     
         it('Failed transfer, revert the changes', async () => {
             await service.postEvent({ type: "deposit", destination: 1, amount: 250 });
-            await service.postEvent({ type: "deposit", destination: 15, amount: 0 });
+            await service.postEvent({ type: "deposit", destination: 15, amount: 10 });
     
             jest.spyOn(repository, "save")
                 .mockResolvedValueOnce(undefined)
@@ -198,7 +198,7 @@ describe('Accounts services', () => {
             const accountClientDestination = await service.getBalance(15);
 
             expect(accountClientOrigin).toEqual({ balance: 250 });
-            expect(accountClientDestination).toEqual({ balance: 0 });
+            expect(accountClientDestination).toEqual({ balance: 10 });
         });
     })
 })
