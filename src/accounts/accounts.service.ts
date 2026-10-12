@@ -31,6 +31,29 @@ export class AccountsService {
         return account;
     }
 
+    checkBodyEvent({ type, amount, destination, origin }: IEvent) {
+        const requiresOrigin = ['transfer', 'withdraw'].includes(type);
+        const requiresDestination = ['deposit', 'transfer'].includes(type);
+
+        if (requiresOrigin && origin === undefined) {
+            throw new BadRequestException('Origin is required');
+        }
+
+        if (requiresDestination && destination === undefined) {
+            throw new BadRequestException('Destination is required');
+        }
+
+        const fields = { amount, origin, destination };
+
+        for (const [field, value] of Object.entries(fields)) {
+            if (value === undefined) continue;
+            
+            if (!Number.isFinite(value) || value < 0) {
+                throw new BadRequestException(`Field ${field} is invalid`);
+            }
+        }
+    }
+
     deposit(amount: number, destination: number) {
         const account = this.repository.findById(destination);
 
@@ -47,6 +70,10 @@ export class AccountsService {
     withdraw(amount: number, origin: number) {
         const account = this.checkExistAccount(origin);
 
+        if (amount <= 0) {
+            throw new BadRequestException(`Field amount is invalid`)
+        } 
+
         if (amount > account.balance) {
             throw new BadRequestException('Balance insufficient, check the amount and try again');
         }
@@ -54,7 +81,9 @@ export class AccountsService {
         this.repository.save({ account_id: origin, balance: account.balance - amount });
         const updatedAccount = this.checkExistAccount(origin);
         
-        return { origin: {id: updatedAccount.account_id, balance: updatedAccount.balance} }
+        return { origin: { id: updatedAccount.account_id, balance: updatedAccount.balance } }
+    }
+
     transfer(amount: number, destination: number, origin: number) {
         const accountClientOrigin = this.checkExistAccount(origin);
         const accountClientDestiantion = this.checkExistAccount(destination);
@@ -62,6 +91,10 @@ export class AccountsService {
         const lastBalanceOrigin = accountClientOrigin.balance;
         const lastBalanceDestination = accountClientDestiantion.balance;
 
+        if (amount <= 0) {
+            throw new BadRequestException(`Field amount is invalid`)
+        } 
+        
         if (origin === destination) {
             throw new BadRequestException('The transfer must be for different accounts, check the account and try again');
         }
@@ -93,6 +126,8 @@ export class AccountsService {
     }
     
     postEvent({ type, amount, destination, origin }: IEvent) {
+        this.checkBodyEvent({type, amount, destination, origin});
+
         if (destination && type === 'deposit') {
             return this.deposit(amount, destination);
         } else if (origin && type === 'withdraw') {
@@ -100,7 +135,7 @@ export class AccountsService {
         } else if (origin && destination && type === 'transfer') {
             return this.transfer(amount, destination, origin);
         } else {
-            throw new BadRequestException('Type event unknown');
+            throw new BadRequestException('Type operation is invalid');
         }
     }    
 }
