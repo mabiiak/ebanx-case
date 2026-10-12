@@ -21,21 +21,44 @@ describe('Accounts controller (e2e)', () => {
         expect(response.body.message).toBe('Account not found');
     });
 
-    it('should create acconut and return the balance', async () => {
+    it('should create accounts and return the respectives balances', async () => {
         await request(app.getHttpServer()).post('/event')
             .send({ type: "deposit", amount: 50, destination: 1 })
             .expect(201);
 
-        const response = await request(app.getHttpServer()).get('/balance/1').expect(200);
-        expect(response.body.balance).toBe(50);
+        await request(app.getHttpServer()).post('/event')
+        .send({ type: "deposit", amount: 200, destination: 2 })
+        .expect(201);
+        
+        await request(app.getHttpServer()).post('/event')
+        .send({ type: "deposit", amount: 600, destination: 2 })
+        .expect(201);
+
+        const responseAccountOne = await request(app.getHttpServer()).get('/balance/1').expect(200);        
+        const accountTwo = await request(app.getHttpServer()).get('/balance/2').expect(200);
+
+        expect(responseAccountOne.body.balance).toBe(50);
+        expect(accountTwo.body.balance).toBe(800);
     });
 
-    it('should create an account and deposit 800' , async () => {
+    it('should create an account and failed deposit' , async () => {
         await request(app.getHttpServer()).post('/event')
             .send({ type: "deposit", amount: 200, destination: 1 })
             .expect(201);
 
-        await request(app.getHttpServer()).get('/balance/1').expect(200);
+        const firstBalance = await request(app.getHttpServer()).get('/balance/1').expect(200);
+        const firstDeposit = await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: -100, destination: 1 })
+            .expect(400);
+        const secondDeposit = await request(app.getHttpServer()).post('/event')
+            .send({ type: "deposit", amount: 10 })
+            .expect(400);
+
+        const secondBalance = await request(app.getHttpServer()).get('/balance/1').expect(200);
+        expect(firstDeposit.body.message).toBe("Field amount is invalid");
+        expect(secondDeposit.body.message).toBe("Destination is required");
+        expect(secondBalance.body.balance).toEqual(firstBalance.body.balance);
+    })
 
     it('should create an account and withdraw', async () => {
         await request(app.getHttpServer()).post('/event')
