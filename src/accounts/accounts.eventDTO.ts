@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsPositive, IsString, Min } from 'class-validator';
+import { IsInt, IsNotEmpty, IsPositive, IsString, Min, ValidateIf } from 'class-validator';
 export class EventDto {
   @ApiProperty({ example: 'deposit' })
   @IsNotEmpty()
@@ -9,11 +9,11 @@ export class EventDto {
 
   @ApiProperty({ example: 100,  minimum: 0 })
   @Type(() => Number)
-  @Min(0)
-  @IsNotEmpty()
+  @IsPositive()
   amount: number;
   
   @ApiPropertyOptional({ example: 30 })
+  @ValidateIf((o) => o.type === 'deposit' || o.type === 'transfer')
   @Type(() => Number)
   @IsInt()
   @IsPositive()
@@ -21,6 +21,7 @@ export class EventDto {
 
   
   @ApiPropertyOptional({ example: 30 })
+  @ValidateIf((o) => o.type === 'withdraw' || o.type === 'transfer')
   @Type(() => Number)
   @IsInt()
   @IsPositive()

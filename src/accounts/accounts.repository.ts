@@ -9,7 +9,7 @@ export class AccountsRepository {
     }
 
     async save(account: Account): Promise<void> {
-        this.accounts.set(account.account_id, account);
+        this.accounts.set(Number(account.account_id), account);
     }
 
     public reset(): void {
