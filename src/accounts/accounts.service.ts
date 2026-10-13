@@ -25,7 +25,7 @@ export class AccountsService {
         const account = await this.repository.findById(Number(accountId));
 
         if (!account) {
-            throw new NotFoundException('Account not found');
+            throw new NotFoundException('Not Found');
         }
 
         return account;
@@ -65,7 +65,7 @@ export class AccountsService {
         const account = await this.checkExistAccount(originFormated);
 
         if (amount > account.balance) {
-            throw new BadRequestException('Balance insufficient, check the amount and try again');
+            throw new BadRequestException('Balance insufficient');
         }
 
         await this.repository.save({ account_id: originFormated, balance: account.balance - amount });
@@ -127,7 +127,11 @@ async transfer(amount: number, destination: number, origin: number) {
     
     async postEvent({ type, amount, destination, origin }: IEvent) {
         await this.checkBodyEvent(amount);
-        
+
+        if (!amount || typeof amount === "string" || amount < 0) {
+            throw new BadRequestException('Field amount is invalid');
+        }
+
         if (destination && type === 'deposit') {
             return this.deposit(amount, destination);
         } else if (origin && type === 'withdraw') {
