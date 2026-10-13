@@ -1,29 +1,29 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { AccountsRepository } from './accounts.repository';
 import { NotFoundException } from '@nestjs/common';
-import { IBalance, IEvent } from './accounts.interface';
+import { IEvent } from './accounts.interface';
 import { ExceptionHandler } from '@nestjs/core/errors/exception-handler.js';
 
 @Injectable()
 export class AccountsService {
     constructor(private readonly repository: AccountsRepository) {}
 
-    async getBalance(account_id: number): Promise<IBalance> { 
-        if (!Number.isInteger(account_id) || account_id <= 0) {
+    async getBalance(accountId: Number): Promise<Number> { 
+        if (Number(accountId) <= 0) {
             throw new BadRequestException('Account id is invalid');
         }     
     
-        const accountBalance = await this.repository.findById(account_id);
+        const accountBalance = await this.repository.findById(Number(accountId));
 
         if (!accountBalance) {
-            throw new NotFoundException('Account not found');
+            throw new NotFoundException;
         }
 
-        return { balance: accountBalance.balance};
+        return accountBalance.balance;
     }
 
-    async checkExistAccount(account_id: number) {
-        const account = await this.repository.findById(account_id);
+    async checkExistAccount(accountId: number) {
+        const account = await this.repository.findById(accountId);
 
         if (!account) {
             throw new NotFoundException('Account not found');

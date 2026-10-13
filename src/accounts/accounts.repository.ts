@@ -4,8 +4,8 @@ export class AccountsRepository {
 
     private accounts = new Map<number, Account>();
 
-    public async findById(account_id: number): Promise<Account | undefined> {
-        return (this.accounts.get(account_id));
+    public async findById(accountId: number): Promise<Account | undefined> {
+        return (this.accounts.get(accountId));
     }
 
     async save(account: Account): Promise<void> {

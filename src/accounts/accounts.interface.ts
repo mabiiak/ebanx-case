@@ -3,10 +3,6 @@ export interface IAccount {
     balance: number,
 }
 
-export interface IBalance {
-    balance: number;
-}
-
 export interface IEvent {
     type: string,
     amount: number,
