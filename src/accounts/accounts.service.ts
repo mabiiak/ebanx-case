@@ -32,10 +32,10 @@ export class AccountsService {
         return account;
     }
 
-    async postReset() {
+    postReset() {
         try {
             this.repository.reset();
-            return 200;
+            return 'OK';
         }  catch (error) {
             throw new Error(`Reset failed, ${error}`)
         }

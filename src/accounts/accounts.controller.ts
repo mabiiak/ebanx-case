@@ -22,6 +22,7 @@ export class AccountsController {
   }
 
   @Post('/reset')
+  @HttpCode(200)
   @ApiOperation({ summary: "Pos reset"})
   postReset() {
     return this.accountsService.postReset();
