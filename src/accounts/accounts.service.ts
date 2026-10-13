@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { AccountsRepository } from './accounts.repository';
 import { NotFoundException } from '@nestjs/common';
 import { IBalance, IEvent } from './accounts.interface';
+import { ExceptionHandler } from '@nestjs/core/errors/exception-handler.js';
 
 @Injectable()
 export class AccountsService {
@@ -29,6 +30,15 @@ export class AccountsService {
         }
 
         return account;
+    }
+
+    async postReset() {
+        try {
+            this.repository.reset();
+            return 200;
+        }  catch (error) {
+            throw new Error(`Reset failed, ${error}`)
+        }
     }
 
     checkBodyEvent({ type, amount, destination, origin }: IEvent) {

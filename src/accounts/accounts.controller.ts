@@ -14,8 +14,13 @@ export class AccountsController {
   }
 
   @Post('/event')
-  @ApiOperation({ summary: "Pos event"})
+  @ApiOperation({ summary: "Post event"})
   postEvent(@Body() body: EventDto) {
     return this.accountsService.postEvent(body);
   }
-}
+
+  @Post('/reset')
+  @ApiOperation({ summary: "Pos reset"})
+  postReset() {
+    return this.accountsService.postReset();
+  }}
