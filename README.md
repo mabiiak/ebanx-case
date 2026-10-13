@@ -39,8 +39,9 @@ Full interactive documentation (Swagger): http://localhost:3000/api
 
 | Method | Route | Description | Responses |
 |---|---|---|---|
-| GET | `/balance?account_id=100` | Returns the account balance | 200, 404 account not found |
-| POST | `/event` | Executes a `deposit`, `withdraw` or `transfer` | 201, 400 invalid input or insufficient funds, 404 account not found |
+| GET | `/balance?account_id=100` | Returns the account balance | 200, 404 |
+| POST | `/event` | Executes a `deposit`, `withdraw` or `transfer` | 201, 404, 400 |
+| POST | `/reset` | Resets all in-memory account data | 200 |
 
 Example (transfer):
 
@@ -101,11 +102,11 @@ npm run test:cov    # coverage
 private accounts = new Map<number, Account>();
 ```
 
-Initially, I ensured transfer consistency by comparing balance values after the transfer and reverting if the source or destination balance was incorrect.
-
+- **Transfer consistency:** Initially, I ensured transfer consistency by comparing balance values after the transfer and reverting if the source or destination balance was incorrect.
 However, during E2E tests I noticed that when an exception was thrown, the execution stopped before reaching the balance check and the rollback wasn't executed.
-
 So I refactored the implementation: before changing anything, I take a snapshot of both accounts and wrap the updates in a try/catch. If an error occurs, `restoreBalances` restores the previous state.
+
+- **Error Handling and API Contract:** My initial implementation included more detailed error messages and additional validations. During testing, I adjusted the responses and validation rules to match the expected API contract, keeping the implementation focused on the requirements rather than introducing unnecessary complexity.
 
 **Limitations:**
 - The data is lost when the project is restarted
@@ -114,8 +115,8 @@ So I refactored the implementation: before changing anything, I take a snapshot 
 
 ### Future Improvements
 - Create a dedicated route for account creation with more details
-- Create a separate file for validation and error messages
 - Create a transaction history / bank statement feature
 - Replace in-memory storage with a persistent database
+- Add more specific and descriptive error messages for different validation and business rule failures
 - Add authentication with JWT
 
